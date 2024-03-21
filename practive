@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_COLUMNS 10  // Adjust based on the actual number of columns
+#define MAX_ROWS 10000  // Adjust based on the expected number of rows (large estimate)
+
+int main() {
+    FILE *fp = fopen("GlobalTemperatures.csv", "r");
+
+    if (fp == NULL) {
+        printf("Error opening file.\n");
+        return 1;
+    }
+
+    // Skip the first line (titles)
+    char buffer[1024];
+    fgets(buffer, sizeof(buffer), fp);
+
+    // Declare and allocate arrays dynamically
+    char *data[MAX_ROWS][MAX_COLUMNS];
+    for (int i = 0; i < MAX_ROWS; i++) {
+        for (int j = 0; j < MAX_COLUMNS; j++) {
+            data[i][j] = NULL;  // Initialize array elements to NULL
+        }
+    }
+
+    int row_count = 0;
+    double column_sum = 0.0;  // Initialize sum for column average
+
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        char *token = strtok(buffer, ",-");  // Split by commas and dashes
+
+        int col_count = 0;
+        while (token != NULL && col_count < MAX_COLUMNS) {
+            // Allocate memory for each data element
+            data[row_count][col_count] = malloc(strlen(token) + 1);
+            if (data[row_count][col_count] == NULL) {
+                printf("Error allocating memory.\n");
+                // Handle memory allocation error (e.g., free allocated memory)
+                return 1;
+            }
+
+            // Copy token to the array element
+            strcpy(data[row_count][col_count], token);
+
+            // Calculate sum for the 4th column average
+            if (col_count == 3) {  // Assuming you want the average of the 4th column (index 3)
+                double value;
+                sscanf(token, "%lf", &value);  // Convert token to double for calculation
+                column_sum += value;
+            }
+
+            col_count++;
+            token = strtok(NULL, ",-");
+        }
+
+        // Check for incomplete rows (more columns expected than found)
+        if (col_count < MAX_COLUMNS) {
+            printf("Warning: Incomplete row encountered.\n");
+            // Handle incomplete rows (e.g., skip or fill with default values)
+        }
+
+        row_count++;
+    }
+
+    fclose(fp);
+
+    // Now you have the data in separate arrays `data[row][col]`
+
+    // Calculate and print the average of the 4th column
+    if (row_count > 0) {
+        double average = column_sum / row_count;
+        printf("Average of the 4th column: %.2lf\n", average);
+    } else {
+        printf("No data found in the file.\n");
+    }
+
+    // Free allocated memory (important to prevent memory leaks)
+    for (int i = 0; i < row_count; i++) {
+        for (int j = 0; j < MAX_COLUMNS; j++) {
+            if (data[i][j] != NULL) {
+                free(data[i][j]);
+            }
+        }
+    }
+
+    return 0;
+}
